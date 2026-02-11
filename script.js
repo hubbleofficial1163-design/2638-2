@@ -86,10 +86,7 @@ function initRSVPForm() {
     const rsvpForm = document.querySelector('.rsvp-form');
     if (!rsvpForm) return;
     
-    // URL вашего Google Apps Script (ЗАМЕНИТЕ НА СВОЙ!)
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxWlK5YjMG8W8C9D8W1KIjqyEf8Mb1FFOOtgJqcNPc7NdnjFiyGegEAce0aAT7Ynfnq/exec';
-    
-    rsvpForm.addEventListener('submit', async function(e) {
+    rsvpForm.addEventListener('submit', function(e) {
         e.preventDefault();
         
         // Показать индикатор загрузки
@@ -114,70 +111,88 @@ function initRSVPForm() {
                 throw new Error('Пожалуйста, заполните все обязательные поля');
             }
             
-            // Отправка на Google Apps Script
-            const response = await fetch(SCRIPT_URL, {
-                method: 'POST',
-                mode: 'cors', // Используем cors режим
-                cache: 'no-cache',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(formData)
-            });
-            
-            if (!response.ok) {
-                throw new Error(`Ошибка HTTP: ${response.status}`);
-            }
-            
-            const result = await response.json();
-            console.log('Ответ сервера:', result);
-            
-            if (result.success) {
-                if (formData.attendance === 'yes') {
-                    alert('✅ Спасибо! Мы будем ждать вас на нашей свадьбе 8 июня 2026 года!');
-                } else {
-                    alert('📝 Спасибо за ваш ответ!');
-                }
+            // Отправка через JSONP (работает с CORS)
+            sendToGoogleSheetsJSONP(formData, function(success, message) {
+                // Восстановить кнопку
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
                 
-                // Очистка формы
-                rsvpForm.reset();
-            } else {
-                throw new Error(result.message || 'Ошибка при сохранении');
-            }
+                if (success) {
+                    if (formData.attendance === 'yes') {
+                        alert('✅ Спасибо! Мы будем ждать вас на нашей свадьбе 8 июня 2026 года!');
+                    } else {
+                        alert('📝 Спасибо за ваш ответ!');
+                    }
+                    
+                    // Очистка формы
+                    rsvpForm.reset();
+                } else {
+                    alert('❌ Ошибка: ' + message);
+                }
+            });
             
         } catch (error) {
             console.error('Ошибка отправки:', error);
-            alert(`❌ Ошибка: ${error.message}`);
-        } finally {
-            // Восстановить кнопку
             submitBtn.textContent = originalText;
             submitBtn.disabled = false;
+            alert('❌ Ошибка: ' + error.message);
         }
     });
 }
 
-// Проверка подключения к Google Sheets
-async function testConnection() {
-    try {
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxWlK5YjMG8W8C9D8W1KIjqyEf8Mb1FFOOtgJqcNPc7NdnjFiyGegEAce0aAT7Ynfnq/exec';
+// Функция отправки через JSONP
+function sendToGoogleSheetsJSONP(formData, callback) {
+    // Замените на ваш URL Google Apps Script
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyOfUjoP6Pv9UfqYINQYMBxU46zo_w8XCcaaE8uXy7uzAeH_ysXm64_bnkaJA1bUKYK/exec';
+    
+    // Создаем уникальное имя для callback функции
+    const callbackName = 'jsonp_callback_' + Date.now();
+    
+    // Добавляем параметры к URL
+    const params = new URLSearchParams({
+        name: formData.name,
+        phone: formData.phone,
+        guests: formData.guests,
+        attendance: formData.attendance,
+        callback: callbackName
+    });
+    
+    const url = SCRIPT_URL + '?' + params.toString();
+    
+    // Создаем функцию обратного вызова
+    window[callbackName] = function(response) {
+        console.log('Ответ от сервера:', response);
         
-        const response = await fetch(SCRIPT_URL, {
-            method: 'GET',
-            mode: 'cors'
-        });
+        // Удаляем callback
+        delete window[callbackName];
         
-        if (response.ok) {
-            const result = await response.json();
-            console.log('Тест подключения:', result);
-            alert('✅ Подключение к Google Sheets работает!');
+        if (response && response.success) {
+            callback(true, response.message || 'Успешно отправлено');
         } else {
-            console.error('Ошибка подключения');
-            alert('❌ Ошибка подключения к серверу');
+            callback(false, response?.message || 'Ошибка сервера');
         }
-    } catch (error) {
-        console.error('Ошибка тестирования:', error);
-        alert('❌ Не удалось подключиться');
-    }
+    };
+    
+    // Создаем script элемент
+    const script = document.createElement('script');
+    script.src = url;
+    
+    // Обработка ошибок
+    script.onerror = function() {
+        console.error('Ошибка загрузки скрипта');
+        delete window[callbackName];
+        callback(false, 'Ошибка подключения к серверу');
+    };
+    
+    // Добавляем скрипт на страницу
+    document.body.appendChild(script);
+    
+    // Удаляем скрипт после загрузки
+    setTimeout(() => {
+        if (document.body.contains(script)) {
+            document.body.removeChild(script);
+        }
+    }, 10000); // 10 секунд таймаут
 }
 
 // Для отладки: вызовите testConnection() в консоли браузера
