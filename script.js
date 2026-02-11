@@ -30,6 +30,29 @@ document.addEventListener('DOMContentLoaded', function() {
     // Запускаем таймер
     updateCountdown();
     setInterval(updateCountdown, 1000);
+
+    // Добавьте этот код в функцию, которая выполняется при загрузке DOM
+    
+    // Проверка наличия фото даты (4.png)
+    const datePhoto = document.querySelector('.date-photo');
+    if (datePhoto) {
+        const dateImg = new Image();
+        dateImg.src = '4.png';
+        
+        dateImg.onload = function() {
+            console.log('Фото даты "4.png" успешно загружено');
+        };
+        
+        dateImg.onerror = function() {
+            console.warn('Фото даты "4.png" не найдено');
+            console.log('Поместите файл "4.png" в ту же папку, что и index.html');
+            
+            // Запасное изображение
+            datePhoto.src = 'https://images.unsplash.com/photo-1511988617509-a57c8a288659?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80';
+        };
+    }
+    
+
     
     // Проверка наличия фонового изображения для hero
     const hero = document.querySelector('.hero');
