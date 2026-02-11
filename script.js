@@ -117,7 +117,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Обработчик формы RSVP
     const rsvpForm = document.querySelector('.rsvp-form');
     if (rsvpForm) {
-        rsvpForm.addEventListener('submit', async function(e) {
+        rsvpForm.addEventListener('submit', function(e) {
             e.preventDefault();
             
             // Сбор данных формы
@@ -134,45 +134,87 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-            console.log('Данные формы:', formData);
+            console.log('Отправляем данные:', formData);
             
-            // URL вашего Google Apps Script (ЗАМЕНИТЕ НА СВОЙ ПОСЛЕ РАЗВЕРТЫВАНИЯ)
+            // URL Google Apps Script с JSONP
             const scriptURL = 'https://script.google.com/macros/s/AKfycbxaAw2PYdxwHj8aL4Fsr1F2x2vYx2A10ee4FzD-jpgdQheMrgv0TdJ5JD48QXs_Wh57/exec';
             
-            try {
-                // Отправка данных на Google Apps Script
-                const response = await fetch(scriptURL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(formData)
-                });
+            // Используем JSONP для обхода CORS
+            const callbackName = 'jsonp_callback_' + Date.now();
+            
+            // Создаем script тег для JSONP
+            const script = document.createElement('script');
+            script.src = scriptURL + '?callback=' + callbackName + 
+                        '&name=' + encodeURIComponent(formData.name) +
+                        '&phone=' + encodeURIComponent(formData.phone) +
+                        '&guests=' + encodeURIComponent(formData.guests) +
+                        '&attendance=' + encodeURIComponent(formData.attendance);
+            
+            // Создаем callback функцию
+            window[callbackName] = function(response) {
+                console.log('Ответ от сервера:', response);
                 
-                const result = await response.json();
+                // Удаляем callback
+                delete window[callbackName];
+                document.body.removeChild(script);
                 
-                if (result.success) {
+                if (response.success) {
                     if (formData.attendance === 'yes') {
-                        alert('Спасибо! Мы будем ждать вас на нашей свадьбе 8 июня 2026 года!');
+                        alert('✅ Спасибо! Мы будем ждать вас на нашей свадьбе 8 июня 2026 года!');
                     } else {
-                        alert('Спасибо за ваш ответ! Жаль, что вы не сможете быть с нами в этот день.');
+                        alert('📝 Спасибо за ваш ответ!');
                     }
-                    console.log('Данные сохранены в таблицу:', result.spreadsheetUrl);
                     
                     // Очистка формы
-                    this.reset();
+                    rsvpForm.reset();
                 } else {
-                    alert('Ошибка при сохранении данных: ' + result.message);
+                    alert('❌ Ошибка: ' + response.message);
                 }
-                
-            } catch (error) {
-                console.error('Ошибка отправки:', error);
-                alert('Произошла ошибка при отправке формы. Пожалуйста, попробуйте позже.');
-            }
+            };
+            
+            // Обработка ошибок
+            script.onerror = function() {
+                console.error('Ошибка загрузки скрипта');
+                delete window[callbackName];
+                document.body.removeChild(script);
+                alert('⚠️ Не удалось отправить данные. Пожалуйста, попробуйте еще раз.');
+            };
+            
+            // Добавляем скрипт на страницу
+            document.body.appendChild(script);
+            
+            // Показываем сообщение о загрузке
+            console.log('Отправка данных через JSONP...');
         });
     }
-});
 
+    // Простая функция для тестирования
+    function testConnection() {
+        console.log('Тестируем подключение к Google Apps Script...');
+        
+        const testScript = document.createElement('script');
+        const callbackName = 'test_callback_' + Date.now();
+        
+        testScript.src = 'https://script.google.com/macros/s/AKfycbyBkccA5ekxF3m1qb_sp5RjoNXYMEm-hWIe-fsoI0LF1_fWUxk3xT4Ntqy19-tA8rR6/exec' + callbackName;
+        
+        window[callbackName] = function(response) {
+            console.log('Тестовый ответ:', response);
+            alert('✅ Подключение работает! Статус: ' + response.message);
+            delete window[callbackName];
+            document.body.removeChild(testScript);
+        };
+        
+        testScript.onerror = function() {
+            console.error('Тест не удался');
+            alert('❌ Не удалось подключиться к серверу');
+            delete window[callbackName];
+        };
+        
+        document.body.appendChild(testScript);
+    }
+
+// Запустите testConnection() в консоли браузера для проверки
+});
 
 // Музыкальный плеер с круговым текстом
 const playButton = document.getElementById('playButton');
