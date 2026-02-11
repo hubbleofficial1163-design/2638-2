@@ -195,7 +195,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const testScript = document.createElement('script');
         const callbackName = 'test_callback_' + Date.now();
         
-        testScript.src = 'https://script.google.com/macros/s/AKfycbyBkccA5ekxF3m1qb_sp5RjoNXYMEm-hWIe-fsoI0LF1_fWUxk3xT4Ntqy19-tA8rR6/exec' + callbackName;
+        testScript.src = 'https://script.google.com/macros/s/AKfycbzq4EuVQv_5YQ2zNxpwpsHawII7-nUOD35YbT13QSCpBCNuYRQ27dcnHjLNzB_LjBRX/exec' + callbackName;
         
         window[callbackName] = function(response) {
             console.log('Тестовый ответ:', response);
