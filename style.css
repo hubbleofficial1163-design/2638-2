@@ -1414,3 +1414,19 @@ a,
 .play-button.playing .pause-right {
     opacity: 1;
 }
+
+.date-photo-container {
+    max-width: 600px;
+    margin-left: auto;
+    margin-bottom: 40px;
+    text-align: right;
+}
+
+.date-photo {
+    width: 100%;
+    max-width: 500px;
+    height: auto;
+    object-fit: contain;
+    display: block;
+    margin-left: auto;
+}
