@@ -114,31 +114,61 @@ document.addEventListener('DOMContentLoaded', function() {
     // Обработчик для кнопки "Посмотреть на карте" (уже есть в HTML)
     
     // Обработчик формы RSVP
+    // Обработчик формы RSVP
     const rsvpForm = document.querySelector('.rsvp-form');
     if (rsvpForm) {
-        rsvpForm.addEventListener('submit', function(e) {
+        rsvpForm.addEventListener('submit', async function(e) {
             e.preventDefault();
             
             // Сбор данных формы
             const formData = {
                 name: this.querySelector('input[type="text"]').value,
                 phone: this.querySelector('input[type="tel"]').value,
-                guests: this.querySelector('.form-select').value,
+                guests: this.querySelector('.form-select').value || '1',
                 attendance: this.querySelector('input[name="attendance"]:checked')?.value
             };
             
-            // Здесь можно отправить данные на сервер
-            console.log('Данные формы:', formData);
-            
-            // Простое уведомление для демонстрации
-            if (formData.attendance === 'yes') {
-                alert('Спасибо! Мы будем ждать вас на нашей свадьбе 8 июня 2026 года!');
-            } else {
-                alert('Спасибо за ваш ответ! Жаль, что вы не сможете быть с нами в этот день.');
+            // Проверка заполнения полей
+            if (!formData.name || !formData.phone || !formData.attendance) {
+                alert('Пожалуйста, заполните все обязательные поля');
+                return;
             }
             
-            // Очистка формы
-            this.reset();
+            console.log('Данные формы:', formData);
+            
+            // URL вашего Google Apps Script (ЗАМЕНИТЕ НА СВОЙ ПОСЛЕ РАЗВЕРТЫВАНИЯ)
+            const scriptURL = 'https://script.google.com/macros/s/AKfycbxaAw2PYdxwHj8aL4Fsr1F2x2vYx2A10ee4FzD-jpgdQheMrgv0TdJ5JD48QXs_Wh57/exec';
+            
+            try {
+                // Отправка данных на Google Apps Script
+                const response = await fetch(scriptURL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    if (formData.attendance === 'yes') {
+                        alert('Спасибо! Мы будем ждать вас на нашей свадьбе 8 июня 2026 года!');
+                    } else {
+                        alert('Спасибо за ваш ответ! Жаль, что вы не сможете быть с нами в этот день.');
+                    }
+                    console.log('Данные сохранены в таблицу:', result.spreadsheetUrl);
+                    
+                    // Очистка формы
+                    this.reset();
+                } else {
+                    alert('Ошибка при сохранении данных: ' + result.message);
+                }
+                
+            } catch (error) {
+                console.error('Ошибка отправки:', error);
+                alert('Произошла ошибка при отправке формы. Пожалуйста, попробуйте позже.');
+            }
         });
     }
 });
